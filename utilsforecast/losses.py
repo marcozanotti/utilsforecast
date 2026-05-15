@@ -9,6 +9,7 @@ __all__ = [
     "pis",
     "spis",
     "mape",
+    "wape",
     "smape",
     "mase",
     "rmae",
@@ -334,6 +335,36 @@ def mape(
         id_col=id_col,
         gen_expr=gen_expr,
         cutoff_col=cutoff_col,
+    )
+
+@_base_docstring
+def wape(
+    df: IntoDataFrameT,
+    models: List[str],
+    id_col: str = "unique_id",
+    target_col: str = "y",
+    cutoff_col: str = "cutoff",
+) -> IntoDataFrameT:
+    """Weighted Absolute Percentage Error (WAPE)
+
+    WAPE (or Mean Absolute Deviation, MAD) is a variant of MAPE in which 
+    the mean absolute percent errors is treated as a weighted arithmetic mean. 
+    Most commonly the absolute percent errors are weighted by the actuals 
+    (e.g. in case of sales forecasting, errors are weighted by sales volume).
+    Effectively, this overcomes the 'infinite error' issue."""    
+
+    def gen_expr(model):
+        abs_err = (nw.col(target_col) - nw.col(model)).abs().sum()
+        abs_target = _zero_to_nan(nw.col(target_col).abs().sum())
+        return (abs_err / abs_target).alias(model)
+
+    return _nw_agg_expr(
+        df=df,
+        models=models,
+        id_col=id_col,
+        gen_expr=gen_expr,
+        cutoff_col=cutoff_col,
+        agg="first"
     )
 
 
